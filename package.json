@@ -4,24 +4,44 @@
   "bin": {
     "my-cdk-project": "bin/my-cdk-project.js"
   },
+  "eslintConfig": {
+    "extends": [
+      "my-cdk-project"
+    ]
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.25.9",
+    "@types/aws-lambda": "^8.10.145",
     "@types/jest": "^29.5.12",
     "@types/node": "22.5.4",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "aws-cdk": "2.160.0",
+    "clear": "^0.1.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^8.56.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
-    "aws-cdk": "2.160.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.2"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.658.1",
+    "@aws-sdk/lib-dynamodb": "^3.658.1",
     "aws-cdk-lib": "2.160.0",
     "constructs": "^10.0.0",
-    "source-map-support": "^0.5.21"
+    "dotenv": "^16.4.5",
+    "source-map-support": "^0.5.21",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
   }
 }

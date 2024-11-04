@@ -1,16 +1,20 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { ApiEndpointStack } from './stacks/ApiEndpointStack';
+import {Stage} from 'aws-cdk-lib';
+import * as dotenv from 'dotenv';
 
 export class MyCdkProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+    dotenv.config();
+    const stage = process.env.STAGE_NAME as string;
+    new Stage(scope, `${process.env.STAGE_NAME}-stage`, {
+      env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+    });
 
-    // The code that defines your stack goes here
-
-    // example resource
-    // const queue = new sqs.Queue(this, 'MyCdkProjectQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    new ApiEndpointStack(this, 'ApiEndpointStack', {
+      stageName: stage,
+    });
   }
 }
