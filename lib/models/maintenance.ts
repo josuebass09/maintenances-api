@@ -7,7 +7,7 @@ export type Maintenance = {
     odometer: number,
 }
 
-export declare enum MaintenanceType {
+export enum MaintenanceType {
     Engine = 'engine',
     Transmission = 'transmission',
     Steer = 'steer',
