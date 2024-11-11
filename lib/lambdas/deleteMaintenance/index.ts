@@ -8,7 +8,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
   console.debug('EVENT: \n' + JSON.stringify(event, null, 2));
 
   const tableName = process.env.maintenanceTable as string;
-  const value = event.pathParameters?.name!;
+  const value = event.pathParameters!.name!;
   const key = MaintenanceKeys.PrimaryKey;
 
   try {
