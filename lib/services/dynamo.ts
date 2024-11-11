@@ -33,10 +33,10 @@ export const addRecord = async(tableName: string, item: any) => {
   return maintenanceItem;
 };
 
-export async function scanTable(tableName: string) {
-  //TODO: type the response of this method
-  const items: any[] = [];
+export async function scanTable<T>(tableName: string): Promise<T[]> {
+  const items: T[] = [];
   let lastEvaluatedKey: Record<string, any> | undefined;
+
   do {
     const params: ScanCommandInput = {
       TableName: tableName,
@@ -48,7 +48,7 @@ export async function scanTable(tableName: string) {
       const response = await docClient.send(command);
 
       if (response.Items) {
-        items.push(...response.Items);
+        items.push(...(response.Items as T[]));
       }
 
       lastEvaluatedKey = response.LastEvaluatedKey;

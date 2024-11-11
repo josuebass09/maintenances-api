@@ -21,7 +21,6 @@ export class ApiEndpointStack extends Stack {
     const maintenanceTable = 'maintenances';
     const table = new Table(this, 'Maintenances', {
       partitionKey: {name: MaintenanceKeys.PrimaryKey, type: AttributeType.STRING},
-      sortKey: { name: MaintenanceKeys.SecondaryKey, type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       tableName: maintenanceTable,
     });
