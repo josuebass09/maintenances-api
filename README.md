@@ -58,7 +58,7 @@ The API provides the following endpoints:
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd my-cdk-project
+cd cars-maintenances
 ```
 
 2. Install dependencies:
