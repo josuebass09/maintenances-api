@@ -68,8 +68,9 @@ npm install
 
 3. Create a `.env` file with required environment variables:
 ```
-AWS_REGION=<your-region>
-STAGE=<development/production>
+CDK_DEFAULT_ACCOUNT=<your-accountId>
+CDK_DEFAULT_REGION=<your-region>
+STAGE_NAME=<dev/prod>
 ```
 
 ## Development
