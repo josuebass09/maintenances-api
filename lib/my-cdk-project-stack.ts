@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { ApiEndpointStack } from './stacks/ApiEndpointStack';
+import { MaintenancesStack } from './stacks/MaintenancesStack';
 import {Stage} from 'aws-cdk-lib';
 import * as dotenv from 'dotenv';
 
@@ -13,7 +13,7 @@ export class MyCdkProjectStack extends cdk.Stack {
       env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
     });
 
-    new ApiEndpointStack(this, 'ApiEndpointStack', {
+    new MaintenancesStack(this, 'MaintenancesStack', {
       stageName: stage,
     });
   }

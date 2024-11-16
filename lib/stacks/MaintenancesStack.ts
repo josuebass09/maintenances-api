@@ -15,7 +15,7 @@ interface ApiStackProps extends cdk.StageProps {
     throttlingBurstLimit?: number;
 }
 
-export class ApiEndpointStack extends Stack {
+export class MaintenancesStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
     const maintenanceTable = 'maintenances';

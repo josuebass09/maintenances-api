@@ -112,7 +112,7 @@ cdk deploy --context stage=production
 - `dynamo.ts`: Manages DynamoDB interactions
 
 ### Stacks
-- `ApiEndpointStack.ts`: Defines API Gateway and Lambda integrations
+- `MaintenancesStack.ts`: Defines API Gateway and Lambda integrations
 - `BucketStack.ts`: Sets up S3 bucket infrastructure
 
 ### Utils
