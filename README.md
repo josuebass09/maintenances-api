@@ -129,4 +129,4 @@ cdk deploy --context stage=production
 
 ## License
 
-Pending...
+See the LICENSE.md file
