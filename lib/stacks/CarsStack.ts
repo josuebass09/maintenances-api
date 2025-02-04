@@ -7,7 +7,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import {MaintenanceKeys} from '../models/maintenance';
+
 interface ApiStackProps extends cdk.StageProps {
     stageName: string;
     description?: string;
@@ -15,16 +15,19 @@ interface ApiStackProps extends cdk.StageProps {
     throttlingBurstLimit?: number;
 }
 
-export class MaintenancesStack extends Stack {
+export class CarsStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
-    const maintenanceTable = 'maintenances';
-    const table = new Table(this, 'Maintenances', {
-      partitionKey: {name: MaintenanceKeys.PrimaryKey, type: AttributeType.STRING},
+    const carsTable = 'cars';
+
+    // Create DynamoDB table for cars
+    const table = new Table(this, 'Cars', {
+      partitionKey: {name: 'licensePlate', type: AttributeType.STRING},
       billingMode: BillingMode.PAY_PER_REQUEST,
-      tableName: maintenanceTable,
+      tableName: carsTable,
     });
 
+    // Create CloudWatch role for API Gateway
     const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [
@@ -38,10 +41,11 @@ export class MaintenancesStack extends Stack {
       cloudWatchRoleArn: cloudWatchRole.roleArn,
     });
 
-    const getMaintenancesLambda = new NodejsFunction(this, 'GetMaintenancesHandler', {
+    // Lambda functions for CRUD operations
+    const getCarsLambda = new NodejsFunction(this, 'GetCarsHandler', {
       runtime: Runtime.NODEJS_18_X,
-      functionName: 'getMaintenances',
-      entry: 'lib/lambdas/maintenances/getMaintenances/index.ts',
+      functionName: 'getCars',
+      entry: 'lib/lambdas/cars/getCars/index.ts',
       handler: 'handler',
       bundling: {
         minify: true,
@@ -49,14 +53,14 @@ export class MaintenancesStack extends Stack {
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        maintenanceTable: 'maintenances',
+        carsTable: 'cars',
       },
     });
 
-    const getMaintenanceLambda = new NodejsFunction(this, 'GetMaintenanceHandler', {
+    const getCarLambda = new NodejsFunction(this, 'GetCarHandler', {
       runtime: Runtime.NODEJS_18_X,
-      functionName: 'getMaintenance',
-      entry: 'lib/lambdas/maintenances/getMaintenance/index.ts',
+      functionName: 'getCar',
+      entry: 'lib/lambdas/cars/getCar/index.ts',
       handler: 'handler',
       bundling: {
         minify: true,
@@ -64,14 +68,14 @@ export class MaintenancesStack extends Stack {
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        maintenanceTable: 'maintenances',
+        carsTable: 'cars',
       },
     });
 
-    const postMaintenanceLambda = new NodejsFunction(this, 'PostMaintenanceHandler', {
+    const postCarLambda = new NodejsFunction(this, 'PostCarHandler', {
       runtime: Runtime.NODEJS_18_X,
-      functionName: 'postMaintenance',
-      entry: 'lib/lambdas/maintenances/postMaintenance/index.ts', // Adjust this path to your actual entry file
+      functionName: 'postCar',
+      entry: 'lib/lambdas/cars/postCar/index.ts',
       handler: 'handler',
       bundling: {
         minify: true,
@@ -79,14 +83,14 @@ export class MaintenancesStack extends Stack {
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        maintenanceTable: 'maintenances',
+        carsTable: 'cars',
       },
     });
 
-    const putMaintenanceLambda = new NodejsFunction(this, 'PutMaintenanceHandler', {
+    const putCarLambda = new NodejsFunction(this, 'PutCarHandler', {
       runtime: Runtime.NODEJS_18_X,
-      functionName: 'putMaintenance',
-      entry: 'lib/lambdas/maintenances/putMaintenance/index.ts',
+      functionName: 'putCar',
+      entry: 'lib/lambdas/cars/putCar/index.ts',
       handler: 'handler',
       bundling: {
         minify: true,
@@ -94,14 +98,14 @@ export class MaintenancesStack extends Stack {
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        maintenanceTable: 'maintenances',
+        carsTable: 'cars',
       },
     });
 
-    const deleteMaintenanceLambda = new NodejsFunction(this, 'DeleteMaintenanceHandler', {
+    const deleteCarLambda = new NodejsFunction(this, 'DeleteCarHandler', {
       runtime: Runtime.NODEJS_18_X,
-      functionName: 'deleteMaintenance',
-      entry: 'lib/lambdas/maintenances/deleteMaintenance/index.ts',
+      functionName: 'deleteCar',
+      entry: 'lib/lambdas/cars/deleteCar/index.ts',
       handler: 'handler',
       bundling: {
         minify: true,
@@ -109,36 +113,31 @@ export class MaintenancesStack extends Stack {
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
-        maintenanceTable: 'maintenances',
+        carsTable: 'cars',
       },
     });
 
-    table.grantReadData(getMaintenancesLambda);
-    table.grantWriteData(postMaintenanceLambda);
-    table.grantWriteData(putMaintenanceLambda);
-    table.grantWriteData(deleteMaintenanceLambda);
-    table.grantReadData(getMaintenanceLambda);
+    // Grant permissions to Lambda functions
+    table.grantReadData(getCarsLambda);
+    table.grantReadData(getCarLambda);
+    table.grantWriteData(postCarLambda);
+    table.grantWriteData(putCarLambda);
+    table.grantWriteData(deleteCarLambda);
 
-    const api = new RestApi(this, 'ApiGatewayPrimary', {
-      restApiName: 'Maintenances API',
-      description: 'API for managing maintenances',
+    // Create API Gateway
+    const api = new RestApi(this, 'CarsApiGateway', {
+      restApiName: 'CarsAPI',
+      description: 'API for managing cars',
       deployOptions: {
-        // Configure stage settings
         throttlingRateLimit: props.throttlingRateLimit || 1000,
         throttlingBurstLimit: props.throttlingBurstLimit || 500,
-
-        // Enable CloudWatch logging
         dataTraceEnabled: true,
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         metricsEnabled: true,
-
-        // Enable caching if needed
         cacheClusterEnabled: true,
         cacheClusterSize: '0.5',
-
-        // Method settings for all methods
         methodOptions: {
-          '/*/*': {  // This applies to all resources and methods
+          '/*/*': {
             throttlingRateLimit: props.throttlingRateLimit || 1000,
             throttlingBurstLimit: props.throttlingBurstLimit || 500,
             cachingEnabled: true,
@@ -157,23 +156,22 @@ export class MaintenancesStack extends Stack {
 
     const stage = api.deploymentStage;
     stage.node.addDependency(apiGatewayAccount);
-    const getMaintenancesIntegration = new LambdaIntegration(getMaintenancesLambda);
-    const postMaintenanceIntegration = new LambdaIntegration(postMaintenanceLambda);
-    const getMaintenanceIntegration = new LambdaIntegration(getMaintenanceLambda);
-    const putMaintenanceIntegration = new LambdaIntegration(putMaintenanceLambda);
-    const deleteMaintenanceIntegration = new LambdaIntegration(deleteMaintenanceLambda);
 
-    const maintenancesResource = api.root.addResource('maintenances');
-    maintenancesResource.addMethod('GET', getMaintenancesIntegration);
+    // Create Lambda integrations
+    const getCarsIntegration = new LambdaIntegration(getCarsLambda);
+    const getCarIntegration = new LambdaIntegration(getCarLambda);
+    const postCarIntegration = new LambdaIntegration(postCarLambda);
+    const putCarIntegration = new LambdaIntegration(putCarLambda);
+    const deleteCarIntegration = new LambdaIntegration(deleteCarLambda);
 
-    const maintenanceResource = api.root.addResource('maintenance');
-    maintenanceResource.addMethod('GET', getMaintenanceIntegration);
-    maintenanceResource.addMethod('POST', postMaintenanceIntegration);
+    // Set up API routes
+    const carsResource = api.root.addResource('cars');
+    carsResource.addMethod('GET', getCarsIntegration);
+    carsResource.addMethod('POST', postCarIntegration);
 
-
-    const singleMaintenanceResource = maintenanceResource.addResource('{name}');
-    singleMaintenanceResource.addMethod('GET', getMaintenanceIntegration);
-    singleMaintenanceResource.addMethod('PUT', putMaintenanceIntegration);
-    singleMaintenanceResource.addMethod('DELETE', deleteMaintenanceIntegration);
+    const singleCarResource = carsResource.addResource('{licensePlate}');
+    singleCarResource.addMethod('GET', getCarIntegration);
+    singleCarResource.addMethod('PUT', putCarIntegration);
+    singleCarResource.addMethod('DELETE', deleteCarIntegration);
   }
 }

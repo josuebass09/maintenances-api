@@ -1,7 +1,7 @@
-import { findRecord } from '../../services/dynamo';
-import {Maintenance, MaintenanceKeys} from '../../models/maintenance';
-import { HttpStatus } from '../../models/http';
-import { buildResponse } from '../../utils/httpHelper';
+import { findRecord } from '../../../services/dynamo';
+import {Maintenance, MaintenanceKeys} from '../../../models/maintenance';
+import { HttpStatus } from '../../../models/http';
+import { buildResponse } from '../../../utils/httpHelper';
 
 export const handler = async (event: any) => {
   console.debug('EVENT: \n' + JSON.stringify(event, null, 2));

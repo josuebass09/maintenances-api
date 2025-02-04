@@ -1,7 +1,7 @@
-import {updateRecord, UpdateResult} from '../../services/dynamo';
-import {Maintenance, MaintenanceKeys} from '../../models/maintenance';
-import {HttpStatus} from '../../models/http';
-import {buildResponse} from '../../utils/httpHelper';
+import {updateRecord, UpdateResult} from '../../../services/dynamo';
+import {Maintenance, MaintenanceKeys} from '../../../models/maintenance';
+import {HttpStatus} from '../../../models/http';
+import {buildResponse} from '../../../utils/httpHelper';
 import {APIGatewayProxyEvent} from 'aws-lambda';
 
 export const handler = async (event: APIGatewayProxyEvent) => {

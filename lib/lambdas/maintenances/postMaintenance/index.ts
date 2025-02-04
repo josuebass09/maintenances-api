@@ -1,9 +1,9 @@
-import {Maintenance, MaintenanceRequest} from '../../models/maintenance';
-import {addRecord} from '../../services/dynamo';
+import {Maintenance, MaintenanceRequest} from '../../../models/maintenance';
+import {addRecord} from '../../../services/dynamo';
 import {APIGatewayProxyEvent} from 'aws-lambda';
-import {HttpStatus} from '../../models/http';
-import {getDateInSixMonths} from '../../utils/dateHelper';
-import {buildResponse} from '../../utils/httpHelper';
+import {HttpStatus} from '../../../models/http';
+import {getDateInSixMonths} from '../../../utils/dateHelper';
+import {buildResponse} from '../../../utils/httpHelper';
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   console.log('EVENT: \n' + JSON.stringify(event, null, 2));

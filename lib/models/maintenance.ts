@@ -5,6 +5,8 @@ export type Maintenance = {
     nextMaintenance: Date | string,
     product: string,
     odometer: number,
+    carId: string,
+    ownerId: string,
 }
 
 export enum MaintenanceType {
@@ -19,6 +21,8 @@ export interface MaintenanceRequest {
     type: MaintenanceType,
     product: string,
     odometer: number,
+    carId: string,
+    ownerId: string,
 }
 
 export enum MaintenanceKeys {

@@ -68,7 +68,6 @@ export async function findRecord<T>(tableName: string, key: string, value: strin
       Key: { [key]: value }
     });
 
-
     const response = await docClient.send(command);
 
     if (!response.Item) {
