@@ -18,22 +18,32 @@ The application uses the following AWS services:
 ## Project Structure
 
 ```
-my-cdk-project/
+maintenances-api/
+├── bin/
+├── cdk.out/
 ├── lib/
-│   ├── lambdas/               # Lambda function handlers
-│   │   ├── deleteMaintenance/
-│   │   ├── getMaintenance/
-│   │   ├── getMaintenances/
-│   │   ├── postMaintenance/
-│   │   └── putMaintenance/
-│   ├── models/                # Type definitions and interfaces
-│   ├── services/             # Service layer (DynamoDB, S3)
-│   ├── stacks/               # CDK stack definitions
-│   └── utils/                # Helper functions
-├── test/                     # Test files
+│   ├── lambdas/
+│   ├── models/
+│   ├── services/
+│   ├── stacks/
+│   ├── utils/
+│   └── my-cdk-project-stack.ts
+├── node_modules/
+├── test/
 │   ├── mocks/
-│   └── services/
-└── bin/                      # CDK app entry point
+│   ├── services/
+│   └── my-cdk-project.test.ts
+├── .env
+├── .eslintrc.json
+├── .gitignore
+├── .npmignore
+├── cdk.context.json
+├── cdk.json
+├── changelog.md
+├── jest.config.js
+├── LICENSE.md
+├── package.json
+└── package-lock.json
 ```
 
 ## API Endpoints
@@ -45,6 +55,12 @@ The API provides the following endpoints:
 - `POST /maintenance` - Create a new maintenance record
 - `PUT /maintenance/{id}` - Update an existing maintenance record
 - `DELETE /maintenance/{id}` - Delete a maintenance record
+
+- `GET /cars` - Retrieve all cars records
+- `GET /cars/{id}` - Retrieve a specific car record
+- `POST /cars` - Create a new car record
+- `PUT /cars/{id}` - Update an existing car record
+- `DELETE /cars/{id}` - Delete a car record
 
 ## Prerequisites
 
