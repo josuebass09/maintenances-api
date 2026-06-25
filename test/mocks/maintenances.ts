@@ -5,6 +5,9 @@ export const createMockMaintenanceRequest = (overrides?: Partial<MaintenanceRequ
   type: MaintenanceType.Engine,
   product: 'Penzoil',
   odometer: 50000,
+  carId: 'car-123',
+  ownerId: 'owner-456',
+  intervalMonths: 6,
   ...overrides
 });
 
@@ -13,6 +16,9 @@ export const createMockMaintenanceRecord = (overrides?: Partial<Maintenance>): M
   type: 'engine' as any,
   product: 'Penzoil',
   odometer: 50000,
+  carId: 'car-123',
+  ownerId: 'owner-456',
+  intervalMonths: 6,
   currentMaintenance: 'ISOString',
   nextMaintenance: 'ISOString',
   ...overrides

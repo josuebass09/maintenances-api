@@ -1,18 +1,21 @@
 import {Stack} from 'aws-cdk-lib';
 import {Runtime} from 'aws-cdk-lib/aws-lambda';
-import {LambdaIntegration, RestApi} from 'aws-cdk-lib/aws-apigateway';
+import {CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi, AuthorizationType} from 'aws-cdk-lib/aws-apigateway';
 import {Construct} from 'constructs';
 import {AttributeType, BillingMode, Table} from 'aws-cdk-lib/aws-dynamodb';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import {MaintenanceKeys} from '../models/maintenance';
+
 interface ApiStackProps extends cdk.StageProps {
     stageName: string;
     description?: string;
     throttlingRateLimit?: number;
     throttlingBurstLimit?: number;
+    userPool: cognito.UserPool;
 }
 
 export class MaintenancesStack extends Stack {
@@ -39,7 +42,7 @@ export class MaintenancesStack extends Stack {
     });
 
     const getMaintenancesLambda = new NodejsFunction(this, 'GetMaintenancesHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'getMaintenances',
       entry: 'lib/lambdas/maintenances/getMaintenances/index.ts',
       handler: 'handler',
@@ -54,7 +57,7 @@ export class MaintenancesStack extends Stack {
     });
 
     const getMaintenanceLambda = new NodejsFunction(this, 'GetMaintenanceHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'getMaintenance',
       entry: 'lib/lambdas/maintenances/getMaintenance/index.ts',
       handler: 'handler',
@@ -69,7 +72,7 @@ export class MaintenancesStack extends Stack {
     });
 
     const postMaintenanceLambda = new NodejsFunction(this, 'PostMaintenanceHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'postMaintenance',
       entry: 'lib/lambdas/maintenances/postMaintenance/index.ts', // Adjust this path to your actual entry file
       handler: 'handler',
@@ -84,7 +87,7 @@ export class MaintenancesStack extends Stack {
     });
 
     const putMaintenanceLambda = new NodejsFunction(this, 'PutMaintenanceHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'putMaintenance',
       entry: 'lib/lambdas/maintenances/putMaintenance/index.ts',
       handler: 'handler',
@@ -99,7 +102,7 @@ export class MaintenancesStack extends Stack {
     });
 
     const deleteMaintenanceLambda = new NodejsFunction(this, 'DeleteMaintenanceHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'deleteMaintenance',
       entry: 'lib/lambdas/maintenances/deleteMaintenance/index.ts',
       handler: 'handler',
@@ -157,6 +160,16 @@ export class MaintenancesStack extends Stack {
 
     const stage = api.deploymentStage;
     stage.node.addDependency(apiGatewayAccount);
+
+    const authorizer = new CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+      cognitoUserPools: [props.userPool],
+    });
+
+    const authOptions = {
+      authorizationType: AuthorizationType.COGNITO,
+      authorizer,
+    };
+
     const getMaintenancesIntegration = new LambdaIntegration(getMaintenancesLambda);
     const postMaintenanceIntegration = new LambdaIntegration(postMaintenanceLambda);
     const getMaintenanceIntegration = new LambdaIntegration(getMaintenanceLambda);
@@ -164,16 +177,14 @@ export class MaintenancesStack extends Stack {
     const deleteMaintenanceIntegration = new LambdaIntegration(deleteMaintenanceLambda);
 
     const maintenancesResource = api.root.addResource('maintenances');
-    maintenancesResource.addMethod('GET', getMaintenancesIntegration);
+    maintenancesResource.addMethod('GET', getMaintenancesIntegration, authOptions);
 
     const maintenanceResource = api.root.addResource('maintenance');
-    maintenanceResource.addMethod('GET', getMaintenanceIntegration);
-    maintenanceResource.addMethod('POST', postMaintenanceIntegration);
-
+    maintenanceResource.addMethod('POST', postMaintenanceIntegration, authOptions);
 
     const singleMaintenanceResource = maintenanceResource.addResource('{name}');
-    singleMaintenanceResource.addMethod('GET', getMaintenanceIntegration);
-    singleMaintenanceResource.addMethod('PUT', putMaintenanceIntegration);
-    singleMaintenanceResource.addMethod('DELETE', deleteMaintenanceIntegration);
+    singleMaintenanceResource.addMethod('GET', getMaintenanceIntegration, authOptions);
+    singleMaintenanceResource.addMethod('PUT', putMaintenanceIntegration, authOptions);
+    singleMaintenanceResource.addMethod('DELETE', deleteMaintenanceIntegration, authOptions);
   }
 }

@@ -1,18 +1,20 @@
 import {Stack} from 'aws-cdk-lib';
 import {Runtime} from 'aws-cdk-lib/aws-lambda';
-import {LambdaIntegration, RestApi} from 'aws-cdk-lib/aws-apigateway';
+import {CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi, AuthorizationType} from 'aws-cdk-lib/aws-apigateway';
 import {Construct} from 'constructs';
 import {AttributeType, BillingMode, Table} from 'aws-cdk-lib/aws-dynamodb';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 
 interface ApiStackProps extends cdk.StageProps {
     stageName: string;
     description?: string;
     throttlingRateLimit?: number;
     throttlingBurstLimit?: number;
+    userPool: cognito.UserPool;
 }
 
 export class CarsStack extends Stack {
@@ -43,7 +45,7 @@ export class CarsStack extends Stack {
 
     // Lambda functions for CRUD operations
     const getCarsLambda = new NodejsFunction(this, 'GetCarsHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'getCars',
       entry: 'lib/lambdas/cars/getCars/index.ts',
       handler: 'handler',
@@ -58,7 +60,7 @@ export class CarsStack extends Stack {
     });
 
     const getCarLambda = new NodejsFunction(this, 'GetCarHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'getCar',
       entry: 'lib/lambdas/cars/getCar/index.ts',
       handler: 'handler',
@@ -73,7 +75,7 @@ export class CarsStack extends Stack {
     });
 
     const postCarLambda = new NodejsFunction(this, 'PostCarHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'postCar',
       entry: 'lib/lambdas/cars/postCar/index.ts',
       handler: 'handler',
@@ -88,7 +90,7 @@ export class CarsStack extends Stack {
     });
 
     const putCarLambda = new NodejsFunction(this, 'PutCarHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'putCar',
       entry: 'lib/lambdas/cars/putCar/index.ts',
       handler: 'handler',
@@ -103,7 +105,7 @@ export class CarsStack extends Stack {
     });
 
     const deleteCarLambda = new NodejsFunction(this, 'DeleteCarHandler', {
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: 'deleteCar',
       entry: 'lib/lambdas/cars/deleteCar/index.ts',
       handler: 'handler',
@@ -157,6 +159,15 @@ export class CarsStack extends Stack {
     const stage = api.deploymentStage;
     stage.node.addDependency(apiGatewayAccount);
 
+    const authorizer = new CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+      cognitoUserPools: [props.userPool],
+    });
+
+    const authOptions = {
+      authorizationType: AuthorizationType.COGNITO,
+      authorizer,
+    };
+
     // Create Lambda integrations
     const getCarsIntegration = new LambdaIntegration(getCarsLambda);
     const getCarIntegration = new LambdaIntegration(getCarLambda);
@@ -166,12 +177,12 @@ export class CarsStack extends Stack {
 
     // Set up API routes
     const carsResource = api.root.addResource('cars');
-    carsResource.addMethod('GET', getCarsIntegration);
-    carsResource.addMethod('POST', postCarIntegration);
+    carsResource.addMethod('GET', getCarsIntegration, authOptions);
+    carsResource.addMethod('POST', postCarIntegration, authOptions);
 
     const singleCarResource = carsResource.addResource('{licensePlate}');
-    singleCarResource.addMethod('GET', getCarIntegration);
-    singleCarResource.addMethod('PUT', putCarIntegration);
-    singleCarResource.addMethod('DELETE', deleteCarIntegration);
+    singleCarResource.addMethod('GET', getCarIntegration, authOptions);
+    singleCarResource.addMethod('PUT', putCarIntegration, authOptions);
+    singleCarResource.addMethod('DELETE', deleteCarIntegration, authOptions);
   }
 }

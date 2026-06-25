@@ -5,6 +5,8 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  QueryCommand,
+  QueryCommandInput,
   ScanCommand,
   ScanCommandInput,
   UpdateCommand
@@ -131,6 +133,42 @@ export async function updateRecord<T>(
       item: undefined
     };
   }
+}
+
+export async function scanTableWithFilter<T>(
+  tableName: string,
+  filterExpression: string,
+  expressionAttributeValues: Record<string, any>,
+  expressionAttributeNames?: Record<string, string>
+): Promise<T[]> {
+  const items: T[] = [];
+  let lastEvaluatedKey: Record<string, any> | undefined;
+
+  do {
+    const params: ScanCommandInput = {
+      TableName: tableName,
+      FilterExpression: filterExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExclusiveStartKey: lastEvaluatedKey,
+    };
+
+    try {
+      const command = new ScanCommand(params);
+      const response = await docClient.send(command);
+
+      if (response.Items) {
+        items.push(...(response.Items as T[]));
+      }
+
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } catch (error) {
+      console.error('Error scanning DynamoDB table with filter:', error);
+      throw error;
+    }
+  } while (lastEvaluatedKey);
+
+  return items;
 }
 
 export async function deleteRecord(

@@ -7,6 +7,7 @@ export type Maintenance = {
     odometer: number,
     carId: string,
     ownerId: string,
+    intervalMonths: number,
 }
 
 export enum MaintenanceType {
@@ -23,6 +24,7 @@ export interface MaintenanceRequest {
     odometer: number,
     carId: string,
     ownerId: string,
+    intervalMonths?: number,
 }
 
 export enum MaintenanceKeys {
