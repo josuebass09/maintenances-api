@@ -1,80 +1,178 @@
 # Cars Maintenance API
 
-A serverless REST API built with AWS CDK and TypeScript for managing maintenance operations.
+A serverless REST API built with AWS CDK and TypeScript for managing car maintenance records — with proactive email reminders so users never miss a service.
 
 ## Project Overview
 
-This project is a serverless application that provides endpoints for managing maintenance records. It's built using AWS CDK infrastructure as code and implements a complete CRUD API with AWS Lambda, API Gateway, and DynamoDB.
+This project is a serverless application that tracks vehicle maintenance records and automatically notifies car owners via email when maintenance is upcoming or overdue. Built with AWS CDK infrastructure as code using AWS Lambda, API Gateway, DynamoDB, Cognito, SES, and EventBridge.
 
 ## Architecture
 
-The application uses the following AWS services:
-- AWS Lambda for serverless compute
-- Amazon API Gateway for REST API endpoints
-- Amazon DynamoDB for data storage
-- Amazon S3 for file storage
-- AWS CDK for infrastructure as code
+```
+┌──────────────┐    ┌─────────────────┐    ┌───────────────┐
+│  API Gateway  │───▶│  Lambda (Node 22)│───▶│   DynamoDB    │
+│  + Cognito   │    │  CRUD handlers   │    │  3 tables     │
+│  Authorizer  │    └─────────────────┘    └───────────────┘
+└──────────────┘
+                     ┌─────────────────┐    ┌───────────────┐
+                     │  EventBridge    │───▶│  Lambda       │
+                     │  Cron (9AM UTC) │    │  sendReminders│───▶ AWS SES
+                     └─────────────────┘    └───────────────┘
+```
+
+### AWS Services
+
+| Service | Purpose |
+|---------|---------|
+| AWS Lambda (Node.js 22) | Serverless compute for all handlers |
+| Amazon API Gateway | REST API endpoints |
+| Amazon DynamoDB | Data storage (3 tables: cars, maintenances, carOwners) |
+| AWS Cognito | User authentication (JWT-based) |
+| Amazon SES | Transactional email delivery for reminders |
+| Amazon EventBridge | Daily cron trigger for reminder Lambda |
+| AWS CDK | Infrastructure as code |
 
 ## Project Structure
 
 ```
 maintenances-api/
-├── bin/
-├── cdk.out/
 ├── lib/
 │   ├── lambdas/
+│   │   ├── cars/               # getCars, getCar, postCar, putCar, deleteCar
+│   │   ├── carOwners/          # getCarOwners, getCarOwner, postCarOwner, putCarOwner, deleteCarOwner
+│   │   ├── maintenances/       # getMaintenances, getMaintenance, postMaintenance, putMaintenance, deleteMaintenance
+│   │   └── notifications/
+│   │       └── sendReminders/  # Daily email reminder Lambda
 │   ├── models/
+│   │   ├── car.ts
+│   │   ├── carOwner.ts         # Includes notificationPreferences
+│   │   ├── maintenance.ts      # Includes configurable intervalMonths
+│   │   ├── http.ts
+│   │   └── environment.ts
 │   ├── services/
+│   │   └── dynamo.ts           # DynamoDB helpers (CRUD + filter scan)
 │   ├── stacks/
+│   │   ├── AuthStack.ts        # Cognito User Pool + Client
+│   │   ├── CarsStack.ts        # Cars API Gateway + Lambdas
+│   │   ├── CarOwnersStack.ts   # CarOwners API Gateway + Lambdas
+│   │   ├── MaintenancesStack.ts
+│   │   ├── NotificationsStack.ts # EventBridge cron + sendReminders Lambda
+│   │   └── BucketStack.ts
 │   ├── utils/
+│   │   ├── dateHelper.ts       # getDateInMonths(date, months)
+│   │   ├── emailTemplates.ts   # HTML email builder for reminders
+│   │   ├── httpHelper.ts
+│   │   └── validation.ts       # Zod schemas for all request types
 │   └── my-cdk-project-stack.ts
-├── node_modules/
 ├── test/
 │   ├── mocks/
-│   ├── services/
-│   └── my-cdk-project.test.ts
+│   └── services/
 ├── .env
-├── .eslintrc.json
-├── .gitignore
-├── .npmignore
-├── cdk.context.json
-├── cdk.json
-├── changelog.md
-├── jest.config.js
-├── LICENSE.md
-├── package.json
-└── package-lock.json
+└── package.json
 ```
 
 ## API Endpoints
 
-The API provides the following endpoints:
+All endpoints require a valid **Cognito JWT token** in the `Authorization` header.
 
-- `GET /maintenances` - Retrieve all maintenance records
-- `GET /maintenance/{id}` - Retrieve a specific maintenance record
-- `POST /maintenance` - Create a new maintenance record
-- `PUT /maintenance/{id}` - Update an existing maintenance record
-- `DELETE /maintenance/{id}` - Delete a maintenance record
+### Car Owners
 
-- `GET /cars` - Retrieve all car records
-- `GET /cars/{id}` - Retrieve a specific car record
-- `POST /cars` - Create a new car record
-- `PUT /cars/{id}` - Update an existing car record
-- `DELETE /cars/{id}` - Delete a car record
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/owners` | List all owners |
+| GET | `/owners/{id}` | Get owner by ID |
+| POST | `/owners` | Create owner |
+| PUT | `/owners/{id}` | Update owner |
+| DELETE | `/owners/{id}` | Delete owner |
+
+### Cars
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/cars` | List all cars (filter: `?ownerId=`) |
+| GET | `/cars/{licensePlate}` | Get car by license plate |
+| POST | `/cars` | Create car |
+| PUT | `/cars/{licensePlate}` | Update car |
+| DELETE | `/cars/{licensePlate}` | Delete car |
+
+### Maintenances
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/maintenances` | List all (filter: `?ownerId=`, `?carId=`) |
+| GET | `/maintenance/{name}` | Get maintenance by name |
+| POST | `/maintenance` | Create maintenance record |
+| PUT | `/maintenance/{name}` | Update maintenance record |
+| DELETE | `/maintenance/{name}` | Delete maintenance record |
+
+### Request Bodies
+
+**POST /owners**
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "address": "123 Main St",
+  "notificationPreferences": {
+    "emailEnabled": true,
+    "daysBeforeReminder": [30, 7, 1, 0]
+  }
+}
+```
+
+**POST /cars**
+```json
+{
+  "vin": "1HGBH41JXMN109186",
+  "make": "Honda",
+  "model": "Civic",
+  "year": 2022,
+  "color": "Blue",
+  "licensePlate": "ABC-1234",
+  "fuel": "gasoline",
+  "transmission": "automatic",
+  "odometer": 15000,
+  "ownerId": "<owner-id>"
+}
+```
+
+**POST /maintenance**
+```json
+{
+  "name": "Oil Change",
+  "type": "engine",
+  "product": "Mobil 1 5W-30",
+  "odometer": 15000,
+  "carId": "<car-id>",
+  "ownerId": "<owner-id>",
+  "intervalMonths": 6
+}
+```
+
+## Notification Engine
+
+The `sendReminders` Lambda runs daily at **9:00 AM UTC** via EventBridge. For each maintenance record it:
+
+1. Calculates days until `nextMaintenance`
+2. Checks against the owner's `daysBeforeReminder` preferences
+3. Sends an email via SES if the window matches
+
+**Default reminder windows:** 30 days before, 7 days before, 1 day before, day-of, and 7 days overdue.
 
 ## Prerequisites
 
-- Node.js (v18.x or later)
+- Node.js 22.x or later
 - AWS CLI configured with appropriate credentials
-- AWS CDK CLI installed (`npm install -g aws-cdk`)
-- TypeScript knowledge
+- AWS CDK CLI: `npm install -g aws-cdk`
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd cars-maintenances
+git clone https://github.com/josuebass09/maintenances-api
+cd maintenances-api
 ```
 
 2. Install dependencies:
@@ -82,74 +180,70 @@ cd cars-maintenances
 npm install
 ```
 
-3. Create a `.env` file with required environment variables:
+3. Create a `.env` file:
 ```
-CDK_DEFAULT_ACCOUNT=<your-accountId>
+CDK_DEFAULT_ACCOUNT=<your-aws-account-id>
 CDK_DEFAULT_REGION=<your-region>
-STAGE_NAME=<dev/prod>
+STAGE_NAME=dev
+SES_FROM_EMAIL=<your-verified-ses-email>
 ```
+
+4. Verify your sender email in AWS SES console before deploying.
 
 ## Development
 
-### Local Testing
-
-Run unit tests:
+### Run tests
 ```bash
 npm test
 ```
 
-### Deployment
+### Lint
+```bash
+npm run lint
+```
 
-1. Bootstrap CDK (first time only):
+### Deploy
+
+Bootstrap CDK (first time only):
 ```bash
 cdk bootstrap
 ```
 
-2. Deploy the stack:
+Deploy all stacks:
 ```bash
-cdk deploy
+cdk deploy --all
 ```
 
-3. To deploy to a specific stage:
+Deploy a specific stack:
 ```bash
-cdk deploy --context stage=production
+cdk deploy CarsStack
+cdk deploy MaintenancesStack
+cdk deploy CarOwnersStack
+cdk deploy NotificationsStack
 ```
 
-## Project Components
+## Stacks
 
-### Lambda Functions
-- `deleteMaintenance`: Handles deletion of maintenance records
-- `getMaintenance`: Retrieves a single maintenance record
-- `getMaintenances`: Lists all maintenance records
-- `postMaintenance`: Creates new maintenance records
-- `putMaintenance`: Updates existing maintenance records
+| Stack | Resources |
+|-------|-----------|
+| `AuthStack` | Cognito User Pool + App Client |
+| `CarsStack` | DynamoDB `cars` table + API Gateway + 5 Lambdas |
+| `MaintenancesStack` | DynamoDB `maintenances` table + API Gateway + 5 Lambdas |
+| `CarOwnersStack` | DynamoDB `carOwners` table + API Gateway + 5 Lambdas |
+| `NotificationsStack` | EventBridge daily rule + `sendReminders` Lambda + SES permissions |
 
-- `deleteCar`: Handles deletion of car records
-- `getCar`: Retrieves a single car record
-- `getCars`: Lists all car records
-- `postCar`: Creates new car records
-- `putCar`: Updates existing car records
+## Cost Estimate (MVP / low traffic)
 
-### Services
-- `bucket.ts`: Handles S3 bucket operations
-- `dynamo.ts`: Manages DynamoDB interactions
-
-### Stacks
-- `MaintenancesStack.ts`: Defines API Gateway and Lambda integrations for maintenances
-- `BucketStack.ts`: Sets up S3 bucket infrastructure
-- `CarsStack.ts`: Defines API Gateway and Lambda integrations for maintenances
-
-### Utils
-- `dateHelper.ts`: Date manipulation utilities
-- `httpHelper.ts`: HTTP response formatting
-
-## Contributing
-
-1. Create a new branch for your feature
-2. Make your changes
-3. Write/update tests as needed
-4. Submit a pull request
+| Service | Free Tier | Est. cost |
+|---------|-----------|-----------|
+| AWS Lambda | 1M req/month | $0 |
+| DynamoDB | 25GB + 25 WCU | $0 |
+| API Gateway | 1M calls/month | $0 |
+| AWS SES | 62K emails/month (from Lambda) | $0 |
+| Cognito | 50K MAU | $0 |
+| EventBridge | 1 rule | $0 |
+| **Total** | | **~$0/month** |
 
 ## License
 
-See the LICENSE.md file
+See [LICENSE.md](LICENSE.md)
